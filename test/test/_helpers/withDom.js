@@ -1,12 +1,18 @@
 require('raf/polyfill');
 
-const { jsdom } = require('jsdom');
+const jsdom = require('jsdom');
+const { JSDOM } = jsdom;
 
-global.document = jsdom('');
-global.window = global.document.defaultView;
-Object.keys(global.document.defaultView).forEach((property) => {
-  if (typeof global[property] === 'undefined') {
-    global[property] = global.document.defaultView[property];
+const { window } = new JSDOM('');
+
+global.document = window.document;
+global.window = window;
+
+const EXCLUDED_PROPS = ['localStorage', 'sessionStorage'];
+
+Object.keys(window).forEach((property) => {
+  if (typeof global[property] === 'undefined' && !EXCLUDED_PROPS.includes(property)) {
+    global[property] = window[property];
   }
 });
 

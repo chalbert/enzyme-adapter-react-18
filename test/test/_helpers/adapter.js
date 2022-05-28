@@ -1,1 +1,1 @@
-module.exports = require('@wojtekmaj/enzyme-adapter-react-17');
+module.exports = require('@chalbert/enzyme-adapter-react-18');

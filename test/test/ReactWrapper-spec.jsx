@@ -8,7 +8,7 @@ import mountEntry from 'enzyme/mount';
 import ReactWrapperEntry from 'enzyme/ReactWrapper';
 import { withSetStateAllowed } from 'enzyme/build/Utils';
 import getAdapter from 'enzyme/build/getAdapter';
-import { fakeDynamicImport } from '@wojtekmaj/enzyme-adapter-utils';
+import { fakeDynamicImport } from '@chalbert/enzyme-adapter-utils';
 
 import './_helpers/setupAdapters';
 import {

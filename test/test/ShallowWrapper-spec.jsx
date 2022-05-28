@@ -10,7 +10,7 @@ import shallowEntry from 'enzyme/shallow';
 import ShallowWrapperEntry from 'enzyme/ShallowWrapper';
 import { withSetStateAllowed } from 'enzyme/build/Utils';
 import getAdapter from 'enzyme/build/getAdapter';
-import { fakeDynamicImport } from '@wojtekmaj/enzyme-adapter-utils';
+import { fakeDynamicImport } from '@chalbert/enzyme-adapter-utils';
 
 import './_helpers/setupAdapters';
 import {
@@ -620,7 +620,7 @@ describe('shallow', () => {
           expect(consumer.text()).to.equal('foo');
         });
 
-        it('does not leak values across roots', () => {
+        it.only('does not leak values across roots', () => {
           const wrapper = shallow(<MyComponent />);
           const provides = wrapper.find(Provides).dive();
           const provider = provides.find(Provider).dive();
@@ -628,6 +628,7 @@ describe('shallow', () => {
 
           const consumes = wrapper.find(Consumes).dive();
           const consumer = consumes.find(Consumer).dive();
+          console.log('--------', consumer.debug());
           expect(consumer.text()).to.equal('howdy!');
         });
       });

@@ -1,5 +1,6 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { flushSync, findDOMNode } from 'react-dom';
+import { createRoot, hydrateRoot } from 'react-dom/client';
 import ReactDOMServer from 'react-dom/server';
 import ShallowRenderer from 'react-test-renderer/shallow';
 import TestUtils from 'react-dom/test-utils';
@@ -51,12 +52,12 @@ import {
   getWrappingComponentMountRenderer,
   compareNodeTypeOf,
   spyMethod,
-} from '@wojtekmaj/enzyme-adapter-utils';
+  getPublicRootInstance,
+  TAG_CODES,
+} from '@chalbert/enzyme-adapter-utils';
 import findCurrentFiberUsingSlowPath from './findCurrentFiberUsingSlowPath';
-import detectFiberTags from './detectFiberTags';
 
 // Lazily populated if DOM is available.
-let FiberTags = null;
 
 function nodeAndSiblingsArray(nodeWithSibling) {
   const array = [];
@@ -112,6 +113,8 @@ function checkIsSuspenseAndCloneElement(el, { suspenseFallback }) {
     return el;
   }
 
+  // console.log('------------checkIsSuspenseAndCloneElement');
+
   let { children } = el.props;
 
   if (suspenseFallback) {
@@ -151,10 +154,11 @@ function toTree(vnode) {
   // i should be doing, or if this is a hack for something i'm doing wrong
   // somewhere else. Should talk to sebastian about this perhaps
   const node = findCurrentFiberUsingSlowPath(vnode);
+
   switch (node.tag) {
-    case FiberTags.HostRoot:
+    case TAG_CODES.HostRoot:
       return childrenToTree(node.child);
-    case FiberTags.HostPortal: {
+    case TAG_CODES.HostPortal: {
       const {
         stateNode: { containerInfo },
         memoizedProps: children,
@@ -170,7 +174,18 @@ function toTree(vnode) {
         rendered: childrenToTree(node.child),
       };
     }
-    case FiberTags.ClassComponent:
+    case TAG_CODES.IndeterminateComponent:
+      return {
+        nodeType: 'indeterminate',
+        type: node.type,
+        props: { ...node.memoizedProps },
+        key: ensureKeyOrUndefined(node.key),
+        ref: node.ref,
+        instance: node.stateNode,
+        rendered: childrenToTree(node.child),
+      };
+    case TAG_CODES.IncompleteClassComponent:
+    case TAG_CODES.ClassComponent:
       return {
         nodeType: 'class',
         type: node.type,
@@ -180,7 +195,7 @@ function toTree(vnode) {
         instance: node.stateNode,
         rendered: childrenToTree(node.child),
       };
-    case FiberTags.FunctionalComponent:
+    case TAG_CODES.FunctionComponent:
       return {
         nodeType: 'function',
         type: node.type,
@@ -190,7 +205,7 @@ function toTree(vnode) {
         instance: null,
         rendered: childrenToTree(node.child),
       };
-    case FiberTags.MemoClass:
+    case TAG_CODES.MemoClass:
       return {
         nodeType: 'class',
         type: node.elementType.type,
@@ -200,7 +215,7 @@ function toTree(vnode) {
         instance: node.stateNode,
         rendered: childrenToTree(node.child.child),
       };
-    case FiberTags.MemoSFC: {
+    case TAG_CODES.MemoSFC: {
       let renderedNodes = flatten(nodeAndSiblingsArray(node.child).map(toTree));
       if (renderedNodes.length === 0) {
         renderedNodes = [node.memoizedProps.children];
@@ -215,7 +230,7 @@ function toTree(vnode) {
         rendered: renderedNodes,
       };
     }
-    case FiberTags.HostComponent: {
+    case TAG_CODES.HostComponent: {
       let renderedNodes = flatten(nodeAndSiblingsArray(node.child).map(toTree));
       if (renderedNodes.length === 0) {
         renderedNodes = [node.memoizedProps.children];
@@ -230,15 +245,18 @@ function toTree(vnode) {
         rendered: renderedNodes,
       };
     }
-    case FiberTags.HostText:
+    case TAG_CODES.HostText:
       return node.memoizedProps;
-    case FiberTags.Fragment:
-    case FiberTags.Mode:
-    case FiberTags.ContextProvider:
-    case FiberTags.ContextConsumer:
+    case TAG_CODES.DehydratedFragment:
+    case TAG_CODES.Fragment:
+    case TAG_CODES.Mode:
+    case TAG_CODES.ContextProvider:
+    case TAG_CODES.ContextConsumer:
       return childrenToTree(node.child);
-    case FiberTags.Profiler:
-    case FiberTags.ForwardRef: {
+    case TAG_CODES.Profiler:
+    case TAG_CODES.MemoComponent:
+    case TAG_CODES.SimpleMemoComponent:
+    case TAG_CODES.ForwardRef: {
       return {
         nodeType: 'function',
         type: node.type,
@@ -249,7 +267,8 @@ function toTree(vnode) {
         rendered: childrenToTree(node.child),
       };
     }
-    case FiberTags.Suspense: {
+    case TAG_CODES.SuspenseListComponent:
+    case TAG_CODES.SuspenseComponent: {
       return {
         nodeType: 'function',
         type: Suspense,
@@ -260,9 +279,13 @@ function toTree(vnode) {
         rendered: childrenToTree(node.child),
       };
     }
-    case FiberTags.Lazy:
+    case TAG_CODES.LazyComponent:
       return childrenToTree(node.child);
-    case FiberTags.OffscreenComponent:
+    case TAG_CODES.ScopeComponent:
+    case TAG_CODES.OffscreenComponent:
+    case TAG_CODES.LegacyHiddenComponent:
+    case TAG_CODES.CacheComponent:
+    case TAG_CODES.TracingMarkerComponent:
       return toTree(node.child);
     default:
       throw new Error(`Enzyme Internal Error: unknown node with tag ${node.tag}`);
@@ -299,7 +322,7 @@ function nodeToHostNode(_node) {
   }
 
   const mapper = (item) => {
-    if (item && item.instance) return ReactDOM.findDOMNode(item.instance);
+    if (item && item.instance) return findDOMNode(item.instance);
     return null;
   };
   if (Array.isArray(node)) {
@@ -319,6 +342,7 @@ function replaceLazyWithFallback(node, fallback) {
     return node.map((el) => replaceLazyWithFallback(el, fallback));
   }
   if (isLazy(node.type)) {
+    // console.log('-----------------replaceLazyWithFallback');
     return fallback;
   }
   return {
@@ -375,7 +399,7 @@ function isStateful(Component) {
   );
 }
 
-class ReactSeventeenAdapter extends EnzymeAdapter {
+class ReactEighteenAdapter extends EnzymeAdapter {
   constructor() {
     super();
     const { lifecycles } = this.options;
@@ -408,14 +432,14 @@ class ReactSeventeenAdapter extends EnzymeAdapter {
     if (has(options, 'suspenseFallback')) {
       throw new TypeError('`suspenseFallback` is not supported by the `mount` renderer');
     }
-    if (FiberTags === null) {
-      // Requires DOM.
-      FiberTags = detectFiberTags();
-    }
+
     const { attachTo, hydrateIn, wrappingComponentProps } = options;
     const domNode = hydrateIn || attachTo || global.document.createElement('div');
     let instance = null;
     const adapter = this;
+
+    let root;
+
     return {
       render(el, context, callback) {
         return wrapAct(() => {
@@ -430,9 +454,14 @@ class ReactSeventeenAdapter extends EnzymeAdapter {
             };
             const ReactWrapperComponent = createMountWrapper(el, { ...options, adapter });
             const wrappedEl = React.createElement(ReactWrapperComponent, wrapperProps);
-            instance = hydrateIn
-              ? ReactDOM.hydrate(wrappedEl, domNode)
-              : ReactDOM.render(wrappedEl, domNode);
+            root = hydrateIn ? hydrateRoot(domNode, wrappedEl) : createRoot(domNode);
+
+            flushSync(() => {
+              root.render(wrappedEl);
+            });
+
+            instance = getPublicRootInstance(root);
+
             if (typeof callback === 'function') {
               callback();
             }
@@ -443,7 +472,7 @@ class ReactSeventeenAdapter extends EnzymeAdapter {
       },
       unmount() {
         wrapAct(() => {
-          ReactDOM.unmountComponentAtNode(domNode);
+          root?.unmount();
         });
         instance = null;
       },
@@ -490,7 +519,6 @@ class ReactSeventeenAdapter extends EnzymeAdapter {
       },
       batchedUpdates(fn) {
         return fn();
-        // return ReactDOM.unstable_batchedUpdates(fn);
       },
       getWrappingComponentRenderer() {
         return {
@@ -571,6 +599,7 @@ class ReactSeventeenAdapter extends EnzymeAdapter {
     };
 
     const renderElement = (elConfig, ...rest) => {
+      // console.log('**************** renderElement');
       const renderedEl = renderer.render(elConfig, ...rest);
 
       const typeIsExisted = !!(renderedEl && renderedEl.type);
@@ -717,15 +746,12 @@ class ReactSeventeenAdapter extends EnzymeAdapter {
           withSetStateAllowed(() => {
             // TODO(lmr): create/use synthetic events
             // TODO(lmr): emulate React's event propagation
-            // ReactDOM.unstable_batchedUpdates(() => {
             handler(...args);
-            // });
           });
         }
       },
       batchedUpdates(fn) {
         return fn();
-        // return ReactDOM.unstable_batchedUpdates(fn);
       },
       checkPropTypes(typeSpecs, values, location, hierarchy) {
         return checkPropTypes(typeSpecs, values, location, displayNameOfNode(cachedNode), () =>
@@ -921,4 +947,4 @@ class ReactSeventeenAdapter extends EnzymeAdapter {
   }
 }
 
-module.exports = ReactSeventeenAdapter;
+module.exports = ReactEighteenAdapter;

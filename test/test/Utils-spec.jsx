@@ -20,7 +20,7 @@ import {
 } from 'enzyme/build/Utils';
 import getAdapter from 'enzyme/build/getAdapter';
 import EnzymeAdapter from 'enzyme/build/EnzymeAdapter';
-import { flatten, mapNativeEventNames, propFromEvent } from '@wojtekmaj/enzyme-adapter-utils';
+import { flatten, mapNativeEventNames, propFromEvent } from '@chalbert/enzyme-adapter-utils';
 import { get, reset, merge as configure } from 'enzyme/build/configuration';
 
 import './_helpers/setupAdapters';

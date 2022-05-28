@@ -1,1 +1,1 @@
-module.exports = require('./ReactSeventeenAdapter');
+module.exports = require('./ReactEighteenAdapter');

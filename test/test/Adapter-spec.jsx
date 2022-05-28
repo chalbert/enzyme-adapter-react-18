@@ -11,7 +11,7 @@ import {
   fakeDynamicImport,
   wrapWithWrappingComponent,
   RootFinder,
-} from '@wojtekmaj/enzyme-adapter-utils';
+} from '@chalbert/enzyme-adapter-utils';
 
 import './_helpers/setupAdapters';
 import Adapter from './_helpers/adapter';

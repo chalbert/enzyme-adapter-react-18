@@ -1,19 +1,22 @@
-[![npm](https://img.shields.io/npm/v/@wojtekmaj/enzyme-adapter-react-17.svg)](https://www.npmjs.com/package/@wojtekmaj/enzyme-adapter-react-17) ![downloads](https://img.shields.io/npm/dt/@wojtekmaj/enzyme-adapter-react-17.svg) [![CI](https://github.com/wojtekmaj/enzyme-adapter-react-17/workflows/CI/badge.svg)](https://github.com/wojtekmaj/enzyme-adapter-react-17/actions)
+[![npm](https://img.shields.io/npm/v/@chalbert/enzyme-adapter-react-18.svg)](https://www.npmjs.com/package/@chalbert/enzyme-adapter-react-18) ![downloads](https://img.shields.io/npm/dt/@chalbert/enzyme-adapter-react-18.svg)
 
-# @wojtekmaj/enzyme-adapter-react-17
 
-Unofficial adapter for React 17 for [Enzyme](https://enzymejs.github.io/enzyme/).
+# @chalbert/enzyme-adapter-react-18
+
+Unofficial adapter for React 18 for [Enzyme](https://enzymejs.github.io/enzyme/).
+
+Adapted from [@wojtekmaj/enzyme-adapter-react-17](https://www.npmjs.com/package/@wojtekmaj/enzyme-adapter-react-17)
 
 ## Installation
 
 ```
-npm install --save-dev @wojtekmaj/enzyme-adapter-react-17
+npm install --save-dev @chalbert/enzyme-adapter-react-18
 ```
 
 or, if you're using Yarn:
 
 ```
-yarn add --dev @wojtekmaj/enzyme-adapter-react-17
+yarn add --dev @chalbert/enzyme-adapter-react-18
 ```
 
 ## Configuration
@@ -22,7 +25,7 @@ Finally, you need to configure enzyme to use the adapter you want it to use. To 
 
 ```js
 import Enzyme from 'enzyme';
-import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
+import Adapter from '@chalbert/enzyme-adapter-react-18';
 
 Enzyme.configure({ adapter: new Adapter() });
 ```
